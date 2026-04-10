@@ -403,7 +403,6 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
         spikesnap="cursor",
         spikemode="across",
         spikethickness=1,
-        spikeopacity=0.9,
     )
     fig.update_yaxes(
         showspikes=True,
@@ -411,7 +410,6 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
         spikesnap="cursor",
         spikemode="across",
         spikethickness=1,
-        spikeopacity=0.9,
     )
     return fig
 
