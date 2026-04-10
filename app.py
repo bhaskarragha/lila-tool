@@ -307,9 +307,9 @@ with st.sidebar:
 <div class="legend-item"><span class="ldot" style="background:#CC5500;border-radius:50%"></span>● Killed by bot (human exit)</div>
 <div class="legend-item"><span class="ldot" style="background:#9400D3;border-radius:2px"></span>◆ Killed by storm (human exit)</div>
 <div class="legend-item"><span class="ldot" style="background:#6A7A8A;border-radius:2px"></span>Unknown exit (human)</div>
-<div class="legend-item"><span class="ldot" style="background:#FF2222;border:2px solid #330000;border-radius:2px"></span>■ Bot exit</div>
+<div class="legend-item"><span class="ldot" style="background:#FF2222;border:2px solid #330000;border-radius:2px"></span>■ Bot path end</div>
 <div class="legend-item"><span class="ldot" style="background:#00BFFF"></span>─ Human path</div>
-<div class="legend-item"><span class="ldot" style="background:#888"></span>╌ Bot path</div>
+<div class="legend-item"><span class="ldot" style="background:#D6D9E0"></span>╌ Bot path</div>
 <div class="legend-item"><span class="ldot" style="background:#FF3333;border-radius:2px"></span>✕ Kill</div>
 <div class="legend-item"><span class="ldot" style="background:#8B0000;border-radius:2px"></span>⊗ Death (bot victim)</div>
 <div class="legend-item"><span class="ldot" style="background:#FFD700;border-radius:2px"></span>★ Loot</div>
@@ -452,8 +452,8 @@ else:
 
 with st.expander("[ HOW TO READ ]", expanded=False):
     st.markdown("""
-- **▲ Green triangle** = spawn | **Human map exit** = killed by human, bot, storm, or unknown (see legend); **■** on bot paths = bot exit
-- **Blue line** = human path | **Grey dashed** = bot path
+- **▲ Green triangle** = spawn | **Human map exit** = killed by human, bot, storm, or unknown (see legend); **■** on bot paths = bot path end
+- **Blue line** = human path | **Silver dashed** = bot path
 - **Drag slider** left → rewind match, right → advance
 - **Heatmaps** = full map image with colour density overlay (kill, death, traffic, loot). Enable in sidebar.
 - **ALL MATCHES** = see full day of activity on one map

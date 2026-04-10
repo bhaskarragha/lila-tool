@@ -8,7 +8,7 @@ from coordinate_mapper import MAP_CONFIG
 
 MINIMAP_SIZE = 1024
 HUMAN_COLOR  = "#00BFFF"
-BOT_COLOR    = "#888888"
+BOT_COLOR    = "#D6D9E0"
 
 EVENT_COLORS  = {
     "Kill":"#FF3333","Killed":"#8B0000","BotKill":"#FF6600",
@@ -315,9 +315,9 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
             # Keep bot paths dashed for readability (single SVG trace).
             fig.add_trace(go.Scatter(
                 x=bot_x, y=bot_y, mode="lines",
-                line=dict(color=BOT_COLOR, width=1, dash="dash"),
+                line=dict(color=BOT_COLOR, width=1.8, dash="dash"),
                 name="Bot", legendgroup="bot", showlegend=True,
-                opacity=0.8, hoverinfo="skip",
+                opacity=0.95, hoverinfo="skip",
             ))
         if show_start_end and start_x:
             fig.add_trace(go.Scatter(
@@ -353,7 +353,7 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
         fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
             marker=dict(symbol="square", size=11, color="#FF2222",
                         line=dict(width=2, color="#330000")),
-            name="■ Bot exit", showlegend=True))
+            name="Bot path end", showlegend=True))
 
     # Event markers (human death rows are only shown as journey-end markers)
     action_df = df[~df["event"].isin(MOVE_EVENTS)] if "event" in df.columns else pd.DataFrame()
