@@ -141,7 +141,7 @@ lila-tool/
 4. **Timeline slider** — drag left to rewind, right to advance. Watch paths grow and shrink. Label shows `T+01:23 / T+04:12`
 5. **Toggle events** — show/hide kills, deaths, loot, storm deaths from the sidebar
 6. **Toggle players** — show/hide humans (solid blue) or bots (grey dashed) separately
-7. **Spawn/Extract markers** — green triangle = spawn point, red square = end point
+7. **Spawn/Death markers** — human and bot spawns use different shapes, and human/bot deaths share one shape with different colours
 8. **Heatmaps** — enable Kill Zone, Death Zone, or Traffic Density in sidebar. Full map with colour overlay appears below
 
 ---

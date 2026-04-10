@@ -32,33 +32,40 @@ KILL_EVENTS  = {"Kill","BotKill"}
 DEATH_EVENTS = {"Killed","BotKilled","KilledByStorm"}
 LOOT_EVENTS  = {"Loot"}
 
-# Human journey end = death cause (not a generic "end" square). Bots keep a separate end marker.
-HUMAN_EXIT_MARKER = {
-    "Killed": dict(
-        symbol="square",
-        size=12,
-        color="#FF2222",
-        line=dict(width=2, color="#330000"),
-        label="■ Killed by human",
-        hover="Killed by human",
+MARKER_STYLE = {
+    "human_spawn": dict(
+        symbol="pentagon",
+        size=15,
+        color="#F15BB5",
+        line=dict(width=2, color="#4A1637"),
+        label="Human spawn",
+        hover="Human spawn",
     ),
-    "BotKilled": dict(
-        symbol="circle",
-        size=12,
-        color="#CC5500",
-        line=dict(width=2, color="#331100"),
-        label="● Killed by bot",
-        hover="Killed by bot",
+    "bot_spawn": dict(
+        symbol="hexagon",
+        size=15,
+        color="#00F5D4",
+        line=dict(width=2, color="#0F3D38"),
+        label="Bot spawn",
+        hover="Bot spawn",
     ),
-    "KilledByStorm": dict(
-        symbol="diamond",
-        size=13,
-        color="#9400D3",
-        line=dict(width=1.5, color="#2d0a3d"),
-        label="◆ Killed by storm",
-        hover="Killed by storm",
+    "human_death": dict(
+        symbol="hourglass",
+        size=14,
+        color="#FF8E72",
+        line=dict(width=2, color="#5B2618"),
+        label="Human death",
+        hover="Human death",
     ),
-    "unknown": dict(
+    "bot_death": dict(
+        symbol="hourglass",
+        size=14,
+        color="#9B8CFF",
+        line=dict(width=2, color="#2F255C"),
+        label="Bot death",
+        hover="Bot death",
+    ),
+    "unknown_exit": dict(
         symbol="hexagon2",
         size=12,
         color="#6A7A8A",
@@ -69,59 +76,111 @@ HUMAN_EXIT_MARKER = {
 }
 
 
-def _collect_human_exit_points(df: pd.DataFrame, timeline_pct: float) -> dict:
-    """Per human: last death in window → marker by cause; at full timeline with no death → unknown at last position."""
-    keys = ("Killed", "BotKilled", "KilledByStorm", "unknown")
-    out = {k: [] for k in keys}
+def _resolve_marker_xy(event_row: pd.Series, move_rows: pd.DataFrame):
+    px, py = event_row.get("pixel_x"), event_row.get("pixel_y")
+    if pd.notna(px) and pd.notna(py):
+        return float(px), float(py)
+
+    ts_event = event_row["ts_unix"] if "ts_unix" in event_row.index else None
+    if ts_event is not None and "ts_unix" in move_rows.columns and not move_rows.empty:
+        before = move_rows[move_rows["ts_unix"] <= ts_event]
+        if not before.empty:
+            return float(before.iloc[-1]["pixel_x"]), float(before.iloc[-1]["pixel_y"])
+    if not move_rows.empty:
+        return float(move_rows.iloc[-1]["pixel_x"]), float(move_rows.iloc[-1]["pixel_y"])
+    return None
+
+
+def _death_hover_text(player_type: str, event_name: str) -> str:
+    if player_type == "human":
+        return {
+            "Killed": "Human death - killed by player",
+            "BotKilled": "Human death - killed by bot",
+            "KilledByStorm": "Human death - storm",
+        }.get(event_name, "Human death")
+    return {
+        "Killed": "Bot death - killed by player",
+        "BotKilled": "Bot death",
+        "KilledByStorm": "Bot death - storm",
+    }.get(event_name, "Bot death")
+
+
+def _collect_endpoint_markers(df: pd.DataFrame, timeline_pct: float) -> dict:
+    out = {"human_death": [], "bot_death": [], "unknown_exit": []}
     if df.empty or "user_id" not in df.columns or "event" not in df.columns:
         return out
+
     at_timeline_end = timeline_pct >= 0.999
     for _, grp in df.groupby("user_id", sort=False):
         ptype = grp["player_type"].iloc[0] if "player_type" in grp.columns else "unknown"
-        if ptype != "human":
+        if ptype not in {"human", "bot"}:
             continue
+
         g = grp.sort_values("ts_unix") if "ts_unix" in grp.columns else grp
-        pos = g[g["event"] == "Position"]
+        moves = g[g["event"].isin(MOVE_EVENTS)]
         deaths = g[g["event"].isin(DEATH_EVENTS)]
+
         if deaths.empty:
-            if not at_timeline_end:
+            if ptype != "human" or not at_timeline_end or moves.empty:
                 continue
-            if pos.empty:
-                continue
-            last = pos.iloc[-1]
-            px, py = last.get("pixel_x"), last.get("pixel_y")
-            if pd.notna(px) and pd.notna(py):
-                out["unknown"].append((float(px), float(py)))
+            xy = _resolve_marker_xy(moves.iloc[-1], moves)
+            if xy is not None:
+                out["unknown_exit"].append(xy)
             continue
-        d = deaths.iloc[-1]
-        evt = str(d["event"])
+
+        death = deaths.iloc[-1]
+        evt = str(death["event"])
         if evt not in DEATH_EVENTS:
             continue
-        px, py = d.get("pixel_x"), d.get("pixel_y")
-        if pd.isna(px) or pd.isna(py):
-            ts_d = d["ts_unix"] if "ts_unix" in d.index else None
-            if ts_d is not None and "ts_unix" in pos.columns and not pos.empty:
-                before = pos[pos["ts_unix"] <= ts_d]
-                if not before.empty:
-                    px, py = before.iloc[-1]["pixel_x"], before.iloc[-1]["pixel_y"]
-            elif not pos.empty:
-                px, py = pos.iloc[-1]["pixel_x"], pos.iloc[-1]["pixel_y"]
-        if pd.isna(px) or pd.isna(py):
+        xy = _resolve_marker_xy(death, moves)
+        if xy is None:
             continue
-        out[evt].append((float(px), float(py)))
+
+        bucket = "human_death" if ptype == "human" else "bot_death"
+        out[bucket].append((xy[0], xy[1], evt))
     return out
 
 
-def _add_human_exit_traces(fig, buckets: dict, event_toggles: dict, show_start_end: bool) -> None:
-    for evt, pts in buckets.items():
+def _add_endpoint_traces(fig, buckets: dict, event_toggles: dict, show_start_end: bool) -> None:
+    if not show_start_end:
+        return
+
+    for bucket in ("human_death", "bot_death"):
+        pts = buckets[bucket]
         if not pts:
             continue
-        if evt in DEATH_EVENTS and not event_toggles.get(evt, True):
+        cfg = MARKER_STYLE[bucket]
+        xs, ys, hovers = [], [], []
+        player_type = "human" if bucket == "human_death" else "bot"
+        for x, y, evt in pts:
+            if not event_toggles.get(evt, True):
+                continue
+            xs.append(x)
+            ys.append(y)
+            hovers.append(_death_hover_text(player_type, evt))
+        if not xs:
             continue
-        if evt == "unknown" and not show_start_end:
-            continue
-        cfg = HUMAN_EXIT_MARKER[evt]
-        xs, ys = zip(*pts)
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=ys,
+                mode="markers",
+                marker=dict(
+                    symbol=cfg["symbol"],
+                    size=cfg["size"],
+                    color=cfg["color"],
+                    line=cfg["line"],
+                ),
+                showlegend=False,
+                hovertemplate="%{text}<extra></extra>",
+                text=hovers,
+            )
+        )
+
+    unknown_pts = buckets["unknown_exit"]
+    if unknown_pts:
+        cfg = MARKER_STYLE["unknown_exit"]
+        xs, ys = zip(*unknown_pts)
         fig.add_trace(
             go.Scatter(
                 x=list(xs),
@@ -133,10 +192,8 @@ def _add_human_exit_traces(fig, buckets: dict, event_toggles: dict, show_start_e
                     color=cfg["color"],
                     line=cfg["line"],
                 ),
-                name=cfg["label"],
-                legendgroup=f"exit_{evt}",
-                showlegend=(evt != "unknown"),
-                hovertemplate=f"<b>{cfg['hover']}</b><extra></extra>",
+                showlegend=False,
+                hovertemplate=f"{cfg['hover']}<extra></extra>",
             )
         )
 
@@ -275,7 +332,8 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
     if "user_id" in move_df.columns and not move_df.empty:
         human_x, human_y = [], []
         bot_x, bot_y = [], []
-        start_x, start_y, end_x, end_y = [], [], [], []
+        human_start_x, human_start_y = [], []
+        bot_start_x, bot_start_y = [], []
 
         for _, grp in move_df.groupby("user_id", sort=False):
             ptype = grp["player_type"].iloc[0] if "player_type" in grp.columns else "unknown"
@@ -297,11 +355,12 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
                 continue
 
             if show_start_end and len(grp) >= 1:
-                start_x.append(grp["pixel_x"].iloc[0])
-                start_y.append(grp["pixel_y"].iloc[0])
-                if ptype == "bot" and len(grp) > 1:
-                    end_x.append(grp["pixel_x"].iloc[-1])
-                    end_y.append(grp["pixel_y"].iloc[-1])
+                if ptype == "human":
+                    human_start_x.append(grp["pixel_x"].iloc[0])
+                    human_start_y.append(grp["pixel_y"].iloc[0])
+                elif ptype == "bot":
+                    bot_start_x.append(grp["pixel_x"].iloc[0])
+                    bot_start_y.append(grp["pixel_y"].iloc[0])
 
         if human_x:
             # SVG Scatter (not GL) so the coord-mapper heatmap beneath receives hovers on empty map.
@@ -319,49 +378,54 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
                 name="Bot", legendgroup="bot", showlegend=True,
                 opacity=0.95, hoverinfo="skip",
             ))
-        if show_start_end and start_x:
+        if show_start_end and human_start_x:
             fig.add_trace(go.Scatter(
-                x=start_x, y=start_y, mode="markers",
-                marker=dict(symbol="triangle-up", size=14, color="#00FF88",
-                            line=dict(width=2, color="#003300")),
+                x=human_start_x, y=human_start_y, mode="markers",
+                marker=dict(
+                    symbol=MARKER_STYLE["human_spawn"]["symbol"],
+                    size=MARKER_STYLE["human_spawn"]["size"],
+                    color=MARKER_STYLE["human_spawn"]["color"],
+                    line=MARKER_STYLE["human_spawn"]["line"],
+                ),
                 showlegend=False, hoverinfo="skip",
             ))
-        if show_start_end and end_x:
+        if show_start_end and bot_start_x:
             fig.add_trace(go.Scatter(
-                x=end_x, y=end_y, mode="markers",
-                marker=dict(symbol="square", size=12, color="#FF2222",
-                            line=dict(width=2, color="#330000")),
+                x=bot_start_x, y=bot_start_y, mode="markers",
+                marker=dict(
+                    symbol=MARKER_STYLE["bot_spawn"]["symbol"],
+                    size=MARKER_STYLE["bot_spawn"]["size"],
+                    color=MARKER_STYLE["bot_spawn"]["color"],
+                    line=MARKER_STYLE["bot_spawn"]["line"],
+                ),
                 showlegend=False, hoverinfo="skip",
             ))
 
     # Above paths (still below event markers) so mapper hovers work on lines too.
     _add_coord_mapper_layer(fig, map_name)
 
-    # Legend: spawn, unknown human exit (always in key), bot end
+    # Legend for path-state markers
     if show_start_end:
-        fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
-            marker=dict(symbol="triangle-up", size=12, color="#00FF88"),
-            name="▲ Spawn", showlegend=True))
-        u = HUMAN_EXIT_MARKER["unknown"]
-        fig.add_trace(go.Scatter(
-            x=[None], y=[None], mode="markers",
-            marker=dict(symbol=u["symbol"], size=u["size"], color=u["color"], line=u["line"]),
-            name=u["label"],
-            legendgroup="exit_unknown",
-            showlegend=True,
-        ))
-        fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
-            marker=dict(symbol="square", size=11, color="#FF2222",
-                        line=dict(width=2, color="#330000")),
-            name="Bot path end", showlegend=True))
+        for marker_key in ("human_spawn", "bot_spawn", "human_death", "bot_death", "unknown_exit"):
+            cfg = MARKER_STYLE[marker_key]
+            fig.add_trace(go.Scatter(
+                x=[None], y=[None], mode="markers",
+                marker=dict(
+                    symbol=cfg["symbol"],
+                    size=cfg["size"],
+                    color=cfg["color"],
+                    line=cfg["line"],
+                ),
+                name=cfg["label"],
+                showlegend=True, hoverinfo="skip",
+            ))
 
-    # Event markers (human death rows are only shown as journey-end markers)
+    # Event markers (death rows are rendered as journey-end markers instead)
     action_df = df[~df["event"].isin(MOVE_EVENTS)] if "event" in df.columns else pd.DataFrame()
     for etype, color in EVENT_COLORS.items():
-        if not event_toggles.get(etype, True): continue
+        if etype in DEATH_EVENTS or not event_toggles.get(etype, True):
+            continue
         sub = action_df[action_df["event"] == etype] if not action_df.empty else pd.DataFrame()
-        if etype in DEATH_EVENTS and "player_type" in sub.columns:
-            sub = sub[sub["player_type"] != "human"]
         if sub.empty: continue
         fig.add_trace(go.Scatter(
             x=sub["pixel_x"], y=sub["pixel_y"], mode="markers",
@@ -372,8 +436,8 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
             hovertemplate=f"<b>{etype}</b><extra></extra>",
         ))
 
-    exit_buckets = _collect_human_exit_points(df, timeline_pct)
-    _add_human_exit_traces(fig, exit_buckets, event_toggles, show_start_end)
+    endpoint_buckets = _collect_endpoint_markers(df, timeline_pct)
+    _add_endpoint_traces(fig, endpoint_buckets, event_toggles, show_start_end)
 
     layout = _base_layout(760)
     layout["margin"] = dict(l=0, r=120, t=52, b=0)
@@ -385,7 +449,7 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
     )
     layout["annotations"] = [
         dict(
-            text="⌖ COORD MAPPER · hover map",
+            text="⌖ COORD MAPPER - hover map",
             xref="paper",
             yref="paper",
             x=1.0,

@@ -269,7 +269,7 @@ with st.sidebar:
     st.markdown('<div class="sec">VISIBILITY</div>', unsafe_allow_html=True)
     show_humans    = st.checkbox("Show Humans", value=True)
     show_bots      = st.checkbox("Show Bots",   value=True)
-    show_start_end = st.checkbox("Spawn/Extract Markers", value=True)
+    show_start_end = st.checkbox("Spawn/Death Markers", value=True)
 
     _module_header(
         '<svg viewBox="0 0 16 16"><path d="M8 2l1.6 3.3L13 7l-3.4 1.7L8 12l-1.6-3.3L3 7l3.4-1.7z"/></svg>',
@@ -302,18 +302,16 @@ with st.sidebar:
     )
     st.markdown('<div class="sec">SYMBOL KEY</div>', unsafe_allow_html=True)
     st.markdown("""
-<div class="legend-item"><span class="ldot" style="background:#00FF88;border:2px solid #003300"></span>▲ Spawn</div>
-<div class="legend-item"><span class="ldot" style="background:#FF2222;border:2px solid #330000;border-radius:2px"></span>■ Killed by human (human exit)</div>
-<div class="legend-item"><span class="ldot" style="background:#CC5500;border-radius:50%"></span>● Killed by bot (human exit)</div>
-<div class="legend-item"><span class="ldot" style="background:#9400D3;border-radius:2px"></span>◆ Killed by storm (human exit)</div>
+<div class="legend-item"><span class="ldot" style="background:#F15BB5"></span>Pentagon - Human spawn</div>
+<div class="legend-item"><span class="ldot" style="background:#00F5D4"></span>Hexagon - Bot spawn</div>
+<div class="legend-item"><span class="ldot" style="background:#FF8E72"></span>Hourglass - Human death</div>
+<div class="legend-item"><span class="ldot" style="background:#9B8CFF"></span>Hourglass - Bot death</div>
 <div class="legend-item"><span class="ldot" style="background:#6A7A8A;border-radius:2px"></span>Unknown exit (human)</div>
-<div class="legend-item"><span class="ldot" style="background:#FF2222;border:2px solid #330000;border-radius:2px"></span>■ Bot path end</div>
-<div class="legend-item"><span class="ldot" style="background:#00BFFF"></span>─ Human path</div>
-<div class="legend-item"><span class="ldot" style="background:#D6D9E0"></span>╌ Bot path</div>
-<div class="legend-item"><span class="ldot" style="background:#FF3333;border-radius:2px"></span>✕ Kill</div>
-<div class="legend-item"><span class="ldot" style="background:#8B0000;border-radius:2px"></span>⊗ Death (bot victim)</div>
-<div class="legend-item"><span class="ldot" style="background:#FFD700;border-radius:2px"></span>★ Loot</div>
-<div class="legend-item"><span class="ldot" style="background:#9400D3;border-radius:2px"></span>◆ Storm (events)</div>
+<div class="legend-item"><span class="ldot" style="background:#00BFFF"></span>Human path</div>
+<div class="legend-item"><span class="ldot" style="background:#D6D9E0"></span>Bot path</div>
+<div class="legend-item"><span class="ldot" style="background:#FF3333;border-radius:2px"></span>PVP kill</div>
+<div class="legend-item"><span class="ldot" style="background:#FF6600;border-radius:2px"></span>Bot kill</div>
+<div class="legend-item"><span class="ldot" style="background:#FFD700;border-radius:2px"></span>Loot</div>
 """, unsafe_allow_html=True)
 
 
@@ -452,7 +450,8 @@ else:
 
 with st.expander("[ HOW TO READ ]", expanded=False):
     st.markdown("""
-- **▲ Green triangle** = spawn | **Human map exit** = killed by human, bot, storm, or unknown (see legend); **■** on bot paths = bot path end
+- **Pink pentagon** = human spawn | **Aqua hexagon** = bot spawn
+- **Coral hourglass** = human death | **Violet hourglass** = bot death | **Grey hexagon** = unknown human exit
 - **Blue line** = human path | **Silver dashed** = bot path
 - **Drag slider** left → rewind match, right → advance
 - **Heatmaps** = full map image with colour density overlay (kill, death, traffic, loot). Enable in sidebar.
