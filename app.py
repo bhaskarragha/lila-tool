@@ -304,13 +304,14 @@ with st.sidebar:
     st.markdown("""
 <div class="legend-item"><span class="ldot" style="background:#F15BB5"></span>Pentagon - Human spawn</div>
 <div class="legend-item"><span class="ldot" style="background:#00F5D4"></span>Hexagon - Bot spawn</div>
-<div class="legend-item"><span class="ldot" style="background:#FF8E72"></span>Hourglass - Human death</div>
+<div class="legend-item"><span class="ldot" style="background:#FF8E72"></span>Hourglass - Human death (player or storm)</div>
 <div class="legend-item"><span class="ldot" style="background:#9B8CFF"></span>Hourglass - Bot death</div>
 <div class="legend-item"><span class="ldot" style="background:#6A7A8A;border-radius:2px"></span>Unknown exit (human)</div>
 <div class="legend-item"><span class="ldot" style="background:#00BFFF"></span>Human path</div>
 <div class="legend-item"><span class="ldot" style="background:#D6D9E0"></span>Bot path</div>
 <div class="legend-item"><span class="ldot" style="background:#FF3333;border-radius:2px"></span>PVP kill</div>
 <div class="legend-item"><span class="ldot" style="background:#FF6600;border-radius:2px"></span>Bot kill</div>
+<div class="legend-item"><span class="ldot" style="background:#FF8E72;border-radius:2px"></span>Storm deaths use the human death marker</div>
 <div class="legend-item"><span class="ldot" style="background:#FFD700;border-radius:2px"></span>Loot</div>
 """, unsafe_allow_html=True)
 
@@ -451,7 +452,7 @@ else:
 with st.expander("[ HOW TO READ ]", expanded=False):
     st.markdown("""
 - **Pink pentagon** = human spawn | **Aqua hexagon** = bot spawn
-- **Coral hourglass** = human death | **Violet hourglass** = bot death | **Grey hexagon** = unknown human exit
+- **Coral hourglass** = human death, including storm deaths | **Violet hourglass** = bot death | **Grey hexagon** = unknown human exit
 - **Blue line** = human path | **Silver dashed** = bot path
 - **Drag slider** left → rewind match, right → advance
 - **Heatmaps** = full map image with colour density overlay (kill, death, traffic, loot). Enable in sidebar.
