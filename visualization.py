@@ -530,8 +530,8 @@ def build_heatmap_figure(df, map_name, heatmap_type="kill"):
         subset = df[df["event"].isin(LOOT_EVENTS)] if "event" in df.columns else df
         colorscale = [
             [0.00, "rgba(0,0,0,0)"],
-            [0.15, "rgba(40,80,40,0.45)"],
-            [0.35, "rgba(0,180,120,0.62)"],
+            [0.15, "rgba(0,150,190,0.34)"],
+            [0.35, "rgba(0,255,210,0.58)"],
             [0.55, "rgba(255,215,0,0.78)"],
             [0.75, "rgba(255,180,0,0.88)"],
             [1.00, "rgba(255,100,0,0.96)"],
