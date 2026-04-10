@@ -528,14 +528,24 @@ def build_heatmap_figure(df, map_name, heatmap_type="kill"):
         title = "DEATH ZONE THERMAL"
     elif heatmap_type == "loot":
         subset = df[df["event"].isin(LOOT_EVENTS)] if "event" in df.columns else df
-        colorscale = [
-            [0.00, "rgba(0,0,0,0)"],
-            [0.15, "rgba(0,150,190,0.34)"],
-            [0.35, "rgba(0,255,210,0.58)"],
-            [0.55, "rgba(255,215,0,0.78)"],
-            [0.75, "rgba(255,180,0,0.88)"],
-            [1.00, "rgba(255,100,0,0.96)"],
-        ]
+        if map_name == "Lockdown":
+            colorscale = [
+                [0.00, "rgba(0,0,0,0)"],
+                [0.15, "rgba(255,170,0,0.18)"],
+                [0.35, "rgba(255,210,0,0.38)"],
+                [0.55, "rgba(255,225,0,0.72)"],
+                [0.75, "rgba(255,180,0,0.88)"],
+                [1.00, "rgba(255,100,0,0.96)"],
+            ]
+        else:
+            colorscale = [
+                [0.00, "rgba(0,0,0,0)"],
+                [0.15, "rgba(0,150,190,0.34)"],
+                [0.35, "rgba(0,255,210,0.58)"],
+                [0.55, "rgba(255,215,0,0.78)"],
+                [0.75, "rgba(255,180,0,0.88)"],
+                [1.00, "rgba(255,100,0,0.96)"],
+            ]
         title = "LOOT ZONE THERMAL"
     else:
         subset = df[df["event"].isin(MOVE_EVENTS)] if "event" in df.columns else df
@@ -574,7 +584,7 @@ def build_heatmap_figure(df, map_name, heatmap_type="kill"):
         fig.add_trace(go.Heatmap(
             z=h, x=xc, y=yc,
             colorscale=colorscale,
-            opacity=0.60 if heatmap_type in {"kill", "death", "loot"} else 0.68,
+            opacity=0.54 if heatmap_type == "loot" else (0.60 if heatmap_type in {"kill", "death"} else 0.68),
             showscale=True,
             zsmooth="best",
             colorbar=dict(
