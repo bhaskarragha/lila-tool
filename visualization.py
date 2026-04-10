@@ -28,6 +28,7 @@ MINIMAP_FILES = {
 MOVE_EVENTS  = {"Position","BotPosition"}
 KILL_EVENTS  = {"Kill","BotKill"}
 DEATH_EVENTS = {"Killed","BotKilled","KilledByStorm"}
+LOOT_EVENTS  = {"Loot"}
 
 
 def _timeline_seconds(series: pd.Series) -> pd.Series:
@@ -236,6 +237,17 @@ def build_heatmap_figure(df, map_name, heatmap_type="kill"):
             [1.00, "rgba(255,40,40,0.98)"],
         ]
         title = "DEATH ZONE THERMAL"
+    elif heatmap_type == "loot":
+        subset = df[df["event"].isin(LOOT_EVENTS)] if "event" in df.columns else df
+        colorscale = [
+            [0.00, "rgba(0,0,0,0)"],
+            [0.15, "rgba(40,80,40,0.45)"],
+            [0.35, "rgba(0,180,120,0.62)"],
+            [0.55, "rgba(255,215,0,0.78)"],
+            [0.75, "rgba(255,180,0,0.88)"],
+            [1.00, "rgba(255,100,0,0.96)"],
+        ]
+        title = "LOOT ZONE THERMAL"
     else:
         subset = df[df["event"].isin(MOVE_EVENTS)] if "event" in df.columns else df
         colorscale = [
@@ -252,8 +264,9 @@ def build_heatmap_figure(df, map_name, heatmap_type="kill"):
     # Keep map readable while still showing activity hotspots.
     _add_bg_image(fig, map_name, opacity=0.66)
 
-    if not subset.empty and "pixel_x" in subset.columns and len(subset) >= 3:
-        bins = 90 if heatmap_type in {"kill", "death"} else 60
+    min_pts = 1 if heatmap_type == "loot" else 3
+    if not subset.empty and "pixel_x" in subset.columns and len(subset) >= min_pts:
+        bins = 90 if heatmap_type in {"kill", "death", "loot"} else 60
         x = subset["pixel_x"].values
         y = subset["pixel_y"].values
         h, xedges, yedges = np.histogram2d(
@@ -261,7 +274,7 @@ def build_heatmap_figure(df, map_name, heatmap_type="kill"):
             range=[[0, MINIMAP_SIZE], [0, MINIMAP_SIZE]]
         )
         h = h.T
-        if heatmap_type in {"kill", "death"}:
+        if heatmap_type in {"kill", "death", "loot"}:
             h = _smooth_heatmap(h, passes=3)
         else:
             h = np.where(h == 0, np.nan, h)
@@ -272,7 +285,7 @@ def build_heatmap_figure(df, map_name, heatmap_type="kill"):
         fig.add_trace(go.Heatmap(
             z=h, x=xc, y=yc,
             colorscale=colorscale,
-            opacity=0.60 if heatmap_type in {"kill", "death"} else 0.68,
+            opacity=0.60 if heatmap_type in {"kill", "death", "loot"} else 0.68,
             showscale=True,
             zsmooth="best",
             colorbar=dict(

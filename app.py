@@ -293,6 +293,7 @@ with st.sidebar:
     show_kill_hm    = st.checkbox("Kill Zone Heat",    value=False)
     show_death_hm   = st.checkbox("Death Zone Heat",   value=False)
     show_traffic_hm = st.checkbox("Traffic Density",   value=False)
+    show_loot_hm    = st.checkbox("Loot Zone Heat",    value=False)
 
     st.divider()
     _module_header(
@@ -431,6 +432,7 @@ active_hm = []
 if show_kill_hm:    active_hm.append(("kill",    "KILL ZONE"))
 if show_death_hm:   active_hm.append(("death",   "DEATH ZONE"))
 if show_traffic_hm: active_hm.append(("traffic", "TRAFFIC"))
+if show_loot_hm:    active_hm.append(("loot",    "LOOT ZONE"))
 
 if active_hm:
     st.divider()
@@ -449,7 +451,7 @@ with st.expander("[ HOW TO READ ]", expanded=False):
 - **▲ Green triangle** = spawn point | **■ Red square** = end point
 - **Blue line** = human path | **Grey dashed** = bot path
 - **Drag slider** left → rewind match, right → advance
-- **Heatmaps** = full map image with colour density overlay. Enable in sidebar.
+- **Heatmaps** = full map image with colour density overlay (kill, death, traffic, loot). Enable in sidebar.
 - **ALL MATCHES** = see full day of activity on one map
     """)
 
