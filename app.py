@@ -227,6 +227,12 @@ def get_data():
     return load_all_data(max_files_per_folder=150)
 
 
+@st.cache_data(show_spinner=False)
+def get_filtered_pixel_data(selected_map, selected_date, selected_match):
+    filtered = apply_filters(get_data(), selected_map, selected_date, selected_match)
+    return add_pixel_coords(filtered, selected_map)
+
+
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<div style="font-family:Teko,Orbitron,monospace;font-size:30px;font-weight:700;color:#d7ff2f;text-align:center;padding:8px 0;text-shadow:0 0 16px rgba(114,255,216,0.38);letter-spacing:0.08em;transform:skewX(-6deg);">BLACK</div>', unsafe_allow_html=True)
@@ -305,8 +311,8 @@ with st.sidebar:
 <div class="legend-item"><span class="ldot" style="background:#F15BB5"></span>Pentagon - Human spawn</div>
 <div class="legend-item"><span class="ldot" style="background:#00F5D4"></span>Hexagon - Bot spawn</div>
 <div class="legend-item"><span class="ldot" style="background:#FF8E72"></span>Hourglass - Human death</div>
-<div class="legend-item"><span class="ldot" style="background:#9B8CFF"></span>Hourglass - Bot death</div>
-<div class="legend-item"><span class="ldot" style="background:#C7FF41"></span>Bowtie - Storm death</div>
+<div class="legend-item"><span class="ldot" style="background:#4CD964"></span>Hourglass - Bot death</div>
+<div class="legend-item"><span class="ldot" style="background:#A855F7"></span>Bowtie - Storm death</div>
 <div class="legend-item"><span class="ldot" style="background:#6A7A8A;border-radius:2px"></span>Unknown exit (human)</div>
 <div class="legend-item"><span class="ldot" style="background:#00BFFF"></span>Human path</div>
 <div class="legend-item"><span class="ldot" style="background:#D6D9E0"></span>Bot path</div>
@@ -343,8 +349,7 @@ text-shadow:0 0 20px rgba(255,120,220,0.35);margin-bottom:24px;">SELECT MISSION 
     st.stop()
 
 # FILTER DATA
-filtered_df = apply_filters(raw_df, selected_map, selected_date, selected_match)
-filtered_df = add_pixel_coords(filtered_df, selected_map)
+filtered_df = get_filtered_pixel_data(selected_map, selected_date, selected_match)
 display_df  = safe_sample(filtered_df, n=5000)
 map_df = filtered_df
 if len(map_df) > 12000 and "ts_unix" in map_df.columns:
@@ -423,10 +428,19 @@ fig = build_minimap_figure(
     timeline_pct=timeline_pct,
     show_start_end=show_start_end,
 )
+minimap_state_key = (
+    selected_map,
+    selected_match,
+    timeline_elapsed if elapsed_max > 0 else "full",
+    show_humans,
+    show_bots,
+    show_start_end,
+    tuple(sorted(name for name, enabled in event_toggles.items() if enabled)),
+)
 st.plotly_chart(
     fig,
     use_container_width=True,
-    key=f"minimap_{selected_map}_{selected_match}_{timeline_elapsed if elapsed_max > 0 else 'full'}",
+    key=f"minimap_{repr(minimap_state_key)}",
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -444,7 +458,11 @@ if active_hm:
     cols = st.columns(len(active_hm))
     for col,(htype,label) in zip(cols, active_hm):
         with col:
-            st.plotly_chart(build_heatmap_figure(display_df, selected_map, htype), use_container_width=True)
+            st.plotly_chart(
+                build_heatmap_figure(display_df, selected_map, htype),
+                use_container_width=True,
+                key=f"heatmap_{selected_map}_{selected_match}_{htype}_{len(display_df)}",
+            )
 else:
     st.divider()
     st.markdown('<div style="text-align:center;color:rgba(180,255,232,0.38);font-size:11px;letter-spacing:0.1em;padding:12px;">[ THERMAL SCANS OFFLINE — ENABLE IN SIDEBAR ]</div>', unsafe_allow_html=True)
@@ -452,7 +470,7 @@ else:
 with st.expander("[ HOW TO READ ]", expanded=False):
     st.markdown("""
 - **Pink pentagon** = human spawn | **Aqua hexagon** = bot spawn
-- **Coral hourglass** = human death | **Violet hourglass** = bot death | **Lime bowtie** = storm death | **Grey hexagon** = unknown human exit
+- **Coral hourglass** = human death | **Green hourglass** = bot death | **Purple bowtie** = storm death | **Grey hexagon** = unknown human exit
 - **Blue line** = human path | **Silver dashed** = bot path
 - **Drag slider** left → rewind match, right → advance
 - **Heatmaps** = full map image with colour density overlay (kill, death, traffic, loot). Enable in sidebar.
