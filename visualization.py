@@ -65,6 +65,14 @@ MARKER_STYLE = {
         label="Bot death",
         hover="Bot death",
     ),
+    "storm_death": dict(
+        symbol="bowtie",
+        size=15,
+        color="#C7FF41",
+        line=dict(width=2, color="#425200"),
+        label="Storm death",
+        hover="Storm death",
+    ),
     "unknown_exit": dict(
         symbol="hexagon2",
         size=12,
@@ -96,17 +104,19 @@ def _death_hover_text(player_type: str, event_name: str) -> str:
         return {
             "Killed": "Human death - killed by player",
             "BotKilled": "Human death - killed by bot",
-            "KilledByStorm": "Human death - storm",
         }.get(event_name, "Human death")
     return {
         "Killed": "Bot death - killed by player",
         "BotKilled": "Bot death",
-        "KilledByStorm": "Bot death - storm",
     }.get(event_name, "Bot death")
 
 
+def _storm_hover_text(player_type: str) -> str:
+    return "Storm death" if player_type == "human" else "Storm death - bot"
+
+
 def _collect_endpoint_markers(df: pd.DataFrame, timeline_pct: float) -> dict:
-    out = {"human_death": [], "bot_death": [], "unknown_exit": []}
+    out = {"human_death": [], "bot_death": [], "storm_death": [], "unknown_exit": []}
     if df.empty or "user_id" not in df.columns or "event" not in df.columns:
         return out
 
@@ -136,8 +146,12 @@ def _collect_endpoint_markers(df: pd.DataFrame, timeline_pct: float) -> dict:
         if xy is None:
             continue
 
+        if evt == "KilledByStorm":
+            out["storm_death"].append((xy[0], xy[1], ptype))
+            continue
+
         bucket = "human_death" if ptype == "human" else "bot_death"
-        out[bucket].append((xy[0], xy[1], evt))
+        out[bucket].append((xy[0], xy[1], evt, ptype))
     return out
 
 
@@ -145,14 +159,23 @@ def _add_endpoint_traces(fig, buckets: dict, event_toggles: dict, show_start_end
     if not show_start_end:
         return
 
-    for bucket in ("human_death", "bot_death"):
+    for bucket in ("human_death", "bot_death", "storm_death"):
         pts = buckets[bucket]
         if not pts:
             continue
         cfg = MARKER_STYLE[bucket]
         xs, ys, hovers = [], [], []
-        player_type = "human" if bucket == "human_death" else "bot"
-        for x, y, evt in pts:
+        for pt in pts:
+            if bucket == "storm_death":
+                x, y, player_type = pt
+                if not event_toggles.get("KilledByStorm", True):
+                    continue
+                xs.append(x)
+                ys.append(y)
+                hovers.append(_storm_hover_text(player_type))
+                continue
+
+            x, y, evt, player_type = pt
             if not event_toggles.get(evt, True):
                 continue
             xs.append(x)
@@ -406,7 +429,7 @@ def build_minimap_figure(df, map_name, show_humans=True, show_bots=True,
 
     # Legend for path-state markers
     if show_start_end:
-        for marker_key in ("human_spawn", "bot_spawn", "human_death", "bot_death", "unknown_exit"):
+        for marker_key in ("human_spawn", "bot_spawn", "human_death", "bot_death", "storm_death", "unknown_exit"):
             cfg = MARKER_STYLE[marker_key]
             fig.add_trace(go.Scatter(
                 x=[None], y=[None], mode="markers",
