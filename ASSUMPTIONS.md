@@ -114,9 +114,9 @@ Yes — and there are four ways to do it, each with increasing engineering effor
 
 - **Option 2 — Render as a static image:** Convert the Plotly chart to a PNG instead of an interactive chart. Handles millions of points instantly. But you lose all interactivity — no hover, no zoom, no toggling individual players on and off.
 
-- **Option 3 — Use Deck.gl or Kepler.gl:** Purpose-built for rendering millions of geospatial points using WebGL. Would handle 89,000 rows easily. Requires more engineering effort and time which was not available for this build.
+- **Option 3 — Use Deck.gl or Kepler.gl:** Purpose-built for rendering millions of geospatial points using WebGL. Would handle 89,000 rows easily. Requires more engineering effort and time, hence was avoided.
 
-- **Option 4 — Pre-aggregate server-side with DuckDB:** Query and summarise the data before sending to the browser. Only send summary statistics, not raw rows. Handles any dataset size. Again, significantly more engineering effort than was available.
+- **Option 4 — Pre-aggregate server-side with DuckDB:** Query and summarise the data before sending to the browser. Only send summary statistics, not raw rows. Handles any dataset size. Again, significantly more engineering effort, hence was avoided.
 
 **The V2 decision**
 For this build, the 5,000 row cap is a deliberate tradeoff. The tool is designed for single-match analysis where 100% of data is always shown. For full-day views, the sample is statistically representative of the overall pattern. Options 3 or 4 are the right path for a production version of this tool.
