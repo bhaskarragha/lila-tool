@@ -108,28 +108,60 @@ Empirically tested: 5,000 rows renders in under 2 seconds, produces visually mea
 "ALL MATCHES" views may miss some events due to sampling. Individual match views are always shown in full and are the recommended mode for detailed analysis.
 
 **Is it technically possible to show all 89,000 rows?**
-Yes — and there are four ways to do it, each with increasing complexity:
+Yes — and there are four ways to do it, each with increasing engineering effort:
 
-- **Option 1 — Remove the cap entirely:** One-line change. But the browser freezes for 10–20 seconds on every filter change or slider move. On Streamlit Cloud (shared servers) it could time out and crash.
+- **Option 1 — Remove the cap entirely:** One-line change. But the browser freezes for 10–20 seconds on every filter change or slider move. On Streamlit Cloud it could time out and crash.
 
 - **Option 2 — Render as a static image:** Convert the Plotly chart to a PNG instead of an interactive chart. Handles millions of points instantly. But you lose all interactivity — no hover, no zoom, no toggling individual players on and off.
 
-- **Option 3 — Use Deck.gl or Kepler.gl:** These are purpose-built for rendering millions of geospatial points using WebGL. Would handle 89,000 rows easily. Requires React, a proper backend, and significantly more engineering time — not a 5-day PM assignment.
+- **Option 3 — Use Deck.gl or Kepler.gl:** Purpose-built for rendering millions of geospatial points using WebGL. Would handle 89,000 rows easily. Requires more engineering effort and time which was not available for this build.
 
-- **Option 4 — Pre-aggregate server-side with DuckDB:** Query and summarise the data before sending to the browser. Only send summary statistics, not raw rows. Handles any dataset size. Again, significantly more complex architecture.
+- **Option 4 — Pre-aggregate server-side with DuckDB:** Query and summarise the data before sending to the browser. Only send summary statistics, not raw rows. Handles any dataset size. Again, significantly more engineering effort than was available.
 
 **The V2 decision**
-If this were a production tool, the right move is Option 3 or 4. For this MVP, the 5,000 row cap is a deliberate tradeoff. The tool is designed for single-match analysis where 100% of data is always shown. For full-day views, the sample is statistically representative of the overall pattern.
+For this build, the 5,000 row cap is a deliberate tradeoff. The tool is designed for single-match analysis where 100% of data is always shown. For full-day views, the sample is statistically representative of the overall pattern. Options 3 or 4 are the right path for a production version of this tool.
 
 ---
 
-## Assumption 7: ts Column Treated as Match-Elapsed Milliseconds
+## Assumption 7: Unknown Exit Type for Human Players
+
+**The problem**
+In some matches, a human player's path simply ends — the last recorded position has no corresponding death event (`Killed`, `BotKilled`, or `KilledByStorm`). This means we cannot determine with certainty whether the player successfully extracted, disconnected mid-match, or experienced a data recording gap.
+
+**The decision**
+We treat these cases as **"Unknown Exit"** and mark them with a distinct neutral marker (grey circle) at the last recorded position. We do not assume extraction or death — we surface the ambiguity honestly so a designer knows the data ends there but cannot draw conclusions about how or why.
+
+**Why not assume extraction?**
+Assuming every path without a death event ended in successful extraction would overcount extraction rates and misrepresent the data. The honest approach is to flag uncertainty rather than fill it with a guess.
+
+**What this looks like in the tool**
+Unknown exit markers appear as grey circles at the end of human paths where no death event was recorded. They are visible when the "Spawn/Extract Markers" toggle is enabled in the sidebar.
+
+---
+
+## Assumption 8: Bot Paths That End Without an Event Are Left as-Is
+
+**The problem**
+Similar to human unknown exits, some bot paths simply stop — the last `BotPosition` event is recorded and then the file ends. There is no corresponding `BotKilled` event to explain the termination.
+
+**The decision**
+No assumption is made. The bot path line simply ends at its last recorded position. No end marker is added, no label is shown, and no conclusion is drawn. The line stops and that is all the data tells us.
+
+**Why no marker?**
+Bot behaviour in the data is already acknowledged as not fully simulating human gameplay (see INSIGHTS.md, Insight 2). Adding an "unknown exit" marker for bots would give false significance to what is likely a routine session end or server-side cleanup event. The path ending is noted; nothing more is inferred.
+
+---
+
+## Assumption 9: ts Column Treated as Match-Elapsed Milliseconds
 
 **The problem**
 The `ts` column in the parquet files contains timestamps that appear to start from a Unix epoch of 1970-01-21, not 2026. This is because `ts` represents milliseconds elapsed within the match, not wall-clock time.
 
 **The decision**
-We treat `ts` as elapsed milliseconds within a match session. For the timeline scrubber, we convert to elapsed seconds (`ts_unix = ts_ms / 1000`) and display as `T+MM:SS` format — minutes and seconds into the match, not a calendar time.
+We treat `ts` as elapsed milliseconds within a match session. For the timeline scrubber, we convert to elapsed seconds (`ts_unix = ts_ms / 1000`) and display as `T+MM:SS` format — minutes and seconds into the match, not a calendar date or time.
 
 **Why this matters**
-If we treated `ts` as a real timestamp, the timeline scrubber would show dates in January 1970 and match durations would appear to be weeks long. By treating it as elapsed time, the scrubber correctly shows a match lasting e.g. `T+00:00` to `T+04:23`.
+If we treated `ts` as a real wall-clock timestamp, the timeline scrubber would show dates in January 1970 and match durations would appear to be weeks long. By treating it as elapsed time, the scrubber correctly shows a match lasting e.g. `T+00:00` to `T+04:23`.
+
+**What we considered instead**
+Displaying raw millisecond values on the slider. Rejected immediately — a designer looking at a slider showing `1,852,321 ms` has no intuitive sense of where they are in the match. `T+03:05` is immediately understandable.
