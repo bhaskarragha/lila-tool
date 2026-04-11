@@ -1,6 +1,6 @@
 # 🎯 LILA BLACK — Player Journey Visualizer
 
-**Live Demo:** `[ADD YOUR STREAMLIT URL HERE]`  
+**Live Demo:** `https://lila-black-recon.streamlit.app`  
 **GitHub:** `https://github.com/bhaskarragha/lila-tool`
 
 ---
