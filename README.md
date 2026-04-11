@@ -1,7 +1,7 @@
 # 🎯 LILA BLACK — Player Journey Visualizer
 
 **Live Demo:** `[ADD YOUR STREAMLIT URL HERE]`  
-**GitHub:** `https://github.com/bhaskarragha/lila-tool`
+**GitHub:** `https://github.com/bhaskarragha/lila-tool-2`
 
 ---
 
@@ -16,11 +16,11 @@ A web-based tactical recon tool that turns raw LILA BLACK telemetry data into vi
 | Tool | Version | Purpose |
 |---|---|---|
 | Python | 3.10+ | Core language |
-| Streamlit | 1.28.1 | Web app framework |
-| Plotly | 5.17.0 | Interactive charts and heatmaps |
-| Pandas | 2.0.3 | Data filtering and manipulation |
-| PyArrow | 13.0.0 | Reading parquet files |
-| NumPy | 1.24.3 | Heatmap density calculations |
+| Streamlit | latest | Web app framework |
+| Plotly | latest | Interactive charts and heatmaps |
+| Pandas | latest | Data filtering and manipulation |
+| PyArrow | latest | Reading parquet files |
+| NumPy | latest | Heatmap density calculations |
 
 **Hosting:** Streamlit Cloud (free tier)
 
@@ -30,11 +30,12 @@ A web-based tactical recon tool that turns raw LILA BLACK telemetry data into vi
 
 **The player data and minimap images are included directly in this repository.**
 
-You can run the tool immediately after cloning — no need to add any external files.
+Clone the repo and run immediately — no external files needed.
 
-The repository contains:
-- `player_data/` — 5 days of production gameplay data (Feb 10–14, 2026) from LILA BLACK
-- `assets/minimaps/` — minimap images for all 3 maps
+| Included | What |
+|---|---|
+| `player_data/` | 5 days of production gameplay (Feb 10–14, 2026), 1,243 files, ~89,000 events |
+| `assets/minimaps/` | Minimap images for AmbroseValley, GrandRift, Lockdown |
 
 ---
 
@@ -42,14 +43,14 @@ The repository contains:
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/bhaskarragha/lila-tool.git
-cd lila-tool
+git clone https://github.com/bhaskarragha/lila-tool-2.git
+cd lila-tool-2
 ```
 
 ### 2. Install dependencies
 ```bash
 pip install -r requirements.txt
-# or if pip not found:
+# or:
 python -m pip install -r requirements.txt
 ```
 
@@ -58,7 +59,7 @@ python -m pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-Open `http://localhost:8501` in your browser. Data loads automatically.
+Open `http://localhost:8501` in your browser.
 
 ---
 
@@ -66,24 +67,25 @@ Open `http://localhost:8501` in your browser. Data loads automatically.
 
 ```
 lila-tool/
-├── app.py                  ← Main Streamlit app — entry point
-├── data_loader.py          ← Reads parquet files, cleans data, cascading filters
-├── coordinate_mapper.py    ← Converts game world (x,z) → minimap pixels
-├── visualization.py        ← Player path chart + heatmap chart (Plotly)
+├── app.py                  ← Main Streamlit app
+├── data_loader.py          ← Reads + cleans parquet files, cascading filters
+├── coordinate_mapper.py    ← Game world (x,z) → minimap pixels
+├── visualization.py        ← Player paths + heatmap charts (Plotly)
 ├── heatmap.py              ← Heatmap helpers
 ├── utils.py                ← Helper functions
-├── requirements.txt        ← Python dependencies
-├── README.md               ← This file
+├── requirements.txt
+├── README.md
 ├── ARCHITECTURE.md         ← Technical decisions and data flow
-├── INSIGHTS.md             ← 3 design insights from the data
-├── player_data/            ← ✅ INCLUDED — 5 days of game telemetry
-│   ├── February_10/        ← 437 parquet files (.nakama-0 format)
+├── INSIGHTS.md             ← 5 design insights from the data
+├── ASSUMPTIONS.md          ← Product decisions and tradeoffs
+├── player_data/            ← ✅ Included
+│   ├── February_10/        ← 437 parquet files (.nakama-0)
 │   ├── February_11/        ← 293 files
 │   ├── February_12/        ← 268 files
 │   ├── February_13/        ← 166 files
 │   └── February_14/        ← 79 files (partial day)
 └── assets/
-    └── minimaps/           ← ✅ INCLUDED — map background images
+    └── minimaps/           ← ✅ Included
         ├── AmbroseValley_Minimap.png
         ├── GrandRift_Minimap.png
         └── Lockdown_Minimap.jpg
@@ -93,70 +95,69 @@ lila-tool/
 
 ## About the Data
 
-**Source:** 5 days of production gameplay data (February 10–14, 2026) from LILA BLACK
+**Source:** 5 days of production gameplay from LILA BLACK (February 10–14, 2026)
 
 | Metric | Value |
 |---|---|
 | Total files | 1,243 |
-| Total event rows | ~89,000 |
+| Total events | ~89,000 |
 | Unique players | 339 |
 | Unique matches | 796 |
 | Maps | AmbroseValley, GrandRift, Lockdown |
 
 **File format:** Apache Parquet, no `.parquet` extension — files end in `.nakama-0`
 
-**Data schema:**
+**Schema:**
 
 | Column | Type | Description |
 |---|---|---|
-| `user_id` | string | UUID = human player. Pure number = bot. |
+| `user_id` | string | UUID = human. Numeric = bot. |
 | `match_id` | string | Match identifier |
-| `map_id` | string | AmbroseValley, GrandRift, or Lockdown |
+| `map_id` | string | AmbroseValley / GrandRift / Lockdown |
 | `x` | float32 | World X coordinate |
-| `y` | float32 | Elevation — not used for 2D map |
+| `y` | float32 | Elevation (not used for 2D map) |
 | `z` | float32 | World Z coordinate |
-| `ts` | timestamp | Milliseconds elapsed within the match |
-| `event` | bytes | Event type — auto-decoded to string |
+| `ts` | timestamp | Milliseconds elapsed within match |
+| `event` | bytes | Event type — auto-decoded by app |
 
-**8 event types:**
-
-| Event | Meaning |
-|---|---|
-| `Position` | Human player movement |
-| `BotPosition` | Bot movement |
-| `Kill` | Human killed another human |
-| `Killed` | Human was killed by another human |
-| `BotKill` | Human killed a bot |
-| `BotKilled` | Human was killed by a bot |
-| `KilledByStorm` | Player died to the storm |
-| `Loot` | Player picked up an item |
+**8 event types:** `Position`, `BotPosition`, `Kill`, `Killed`, `BotKill`, `BotKilled`, `KilledByStorm`, `Loot`
 
 ---
 
 ## How to Use the Tool
 
-1. **Select Map** — sidebar Step 1 dropdown (AmbroseValley, GrandRift, Lockdown)
-2. **Select Date** — only dates with data for your chosen map appear
-3. **Select Match** — only matches from that map + date appear. Choose one or **ALL MATCHES** for the full day
-4. **Timeline slider** — drag left to rewind, right to advance. Watch paths grow and shrink. Label shows `T+01:23 / T+04:12`
-5. **Toggle events** — show/hide kills, deaths, loot, storm deaths from the sidebar
-6. **Toggle players** — show/hide humans (solid blue) or bots (grey dashed) separately
-7. **Spawn/Death markers** — human and bot spawns use different shapes, and human/bot deaths share one shape with different colours
-8. **Heatmaps** — enable Kill Zone, Death Zone, or Traffic Density in sidebar. Full map with colour overlay appears below
+1. **Select Map** — sidebar Step 1 (AmbroseValley, GrandRift, Lockdown)
+2. **Select Date** — only dates with data for your map appear
+3. **Select Match** — only matches from that map+date appear. Use **ALL MATCHES** for full-day view
+4. **Timeline scrubber** — drag left to rewind, right to advance. Shows `T+01:23 / T+04:12` format
+5. **Toggle players** — show/hide humans (solid blue) or bots (grey dashed) separately
+6. **Toggle events** — show/hide kills, deaths, loot, storm deaths individually
+7. **Spawn/Extract markers** — pentagon = human spawn, hexagon = bot spawn, X = death point
+8. **Heatmaps** — enable Kill Zone, Death Zone, Traffic, or Loot Zone from sidebar. Full map with colour density overlay (blue → green → yellow → red) appears below
 
 ---
 
-## Deployment — Streamlit Cloud
+## Documentation
 
-1. Push repo to GitHub (public)
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Sign in with GitHub → click **Create app**
-4. Select **Deploy a public app from GitHub**
-5. Set GitHub URL to: `https://github.com/bhaskarragha/lila-tool/blob/main/app.py`
-6. Click **Deploy** — live URL ready in ~2 minutes
+| File | Contents |
+|---|---|
+| `ARCHITECTURE.md` | Tech decisions, data flow, coordinate mapping, tradeoffs |
+| `INSIGHTS.md` | 5 design insights from the data with evidence and designer actions |
+| `ASSUMPTIONS.md` | 7 product assumptions made during build with reasoning |
+
+---
+
+## Deployment
+
+Hosted on Streamlit Cloud. To redeploy from this repo:
+
+1. Go to [share.streamlit.io](https://share.streamlit.io)
+2. Click **Create app → Deploy a public app from GitHub**
+3. Set GitHub URL to: `https://github.com/bhaskarragha/lila-tool-2/blob/main/app.py`
+4. Click **Deploy**
 
 ---
 
 ## Environment Variables
 
-None required. All data and configuration is included in the repository.
+None required.
