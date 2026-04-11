@@ -12,14 +12,14 @@ Without any reference point, a player path is just a line floating on the map. Y
 
 **The decision**
 We added distinct markers for every player path:
-- **Human spawn:** Pink pentagon (▼) at the first recorded position
+- **Human spawn:** Pink pentagon at the first recorded position
 - **Bot spawn:** Teal hexagon at the first recorded position
 - **Human death/extract:** Red circle-X at the last recorded position
 - **Bot death:** Orange marker at the last recorded position
 - **Storm death:** Purple diamond — specific to storm kills
 
 **Why different shapes for humans vs bots?**
-Using colour alone is not enough when paths overlap. Pentagon vs hexagon gives a secondary visual cue that works even when markers overlap.
+Using colour alone is not enough when paths overlap. Pentagon vs hexagon gives a secondary visual cue that works even when markers overlap on a busy map.
 
 **What we considered instead**
 A simple numbered label per player. Rejected because it becomes unreadable when 20+ players are shown simultaneously.
@@ -35,7 +35,7 @@ The assignment specified kill zones, death zones, and traffic heatmaps. After bu
 We added a fourth heatmap: **Loot Zone Heat**. This shows density of `Loot` events — where players are actually picking up items. This is distinct from traffic (where players walk) and gives designers a direct view of which loot spawns are being used and which are being ignored.
 
 **Why this matters**
-A designer can compare the Traffic heatmap against the Loot heatmap. If players are moving through an area but not looting there, it means loot spawns in that zone are either missing or too low quality to be worth stopping for. This is an actionable insight that the original three heatmaps cannot provide alone.
+A designer can compare the Traffic heatmap against the Loot heatmap. If players are moving through an area but not looting there, it means loot spawns in that zone are either missing or too low quality to be worth stopping for. This is an actionable insight the original three heatmaps cannot provide alone.
 
 **What we considered instead**
 Overlaying loot events as scatter points on the traffic map. Rejected because it created visual clutter when combined with movement paths and event markers.
@@ -51,13 +51,10 @@ During development, we attempted to render kill, death, traffic, and loot heatma
 Each heatmap is rendered as a separate, full-size chart below the main player path map. The designer enables one or more heatmaps from the sidebar and each appears as its own panel side by side, each with the full minimap image as its background.
 
 **The tradeoff**
-A designer cannot see heatmap data and player paths at the same time in a single view. To compare them, they need to toggle between the path view and the heatmap panels below.
-
-**Why this is acceptable**
-For level design analysis, comparing heatmaps is typically a separate workflow from reviewing individual player journeys. A designer reviewing kill zones does not simultaneously need to see individual bot paths. The separation keeps each view clean and readable.
+A designer cannot see heatmap data and player paths at the same time in a single view. However, for level design analysis, reviewing heatmaps is typically a separate workflow from reviewing individual player journeys — the separation keeps each view clean and readable.
 
 **What we considered instead**
-A tab system (tab 1: paths, tab 2: heatmaps). Rejected because Streamlit tabs require a full page reload on each switch, which re-runs the data pipeline and feels slow.
+A tab system (tab 1: paths, tab 2: heatmaps). Rejected because Streamlit tabs require a full page reload on each switch, which re-runs the entire data pipeline and feels slow.
 
 ---
 
@@ -67,32 +64,32 @@ A tab system (tab 1: paths, tab 2: heatmaps). Rejected because Streamlit tabs re
 The original design called for automatic match playback — a play button that would advance the timeline at real speed, re-rendering the map every second. We built and tested this approach.
 
 **What went wrong**
-Auto-playback requires the Streamlit app to re-render the Plotly chart every second. Each re-render reads and re-processes the filtered dataframe, recalculates pixel coordinates, and rebuilds the entire figure. On a dataset of 5,000+ rows, this took 1.5–3 seconds per frame. The result was a choppy, laggy animation that was worse than useless for understanding match progression.
+Auto-playback requires Streamlit to re-render the Plotly chart every second. Each re-render reads and re-processes the filtered dataframe, recalculates pixel coordinates, and rebuilds the entire figure. On a dataset of 5,000+ rows, this took 1.5–3 seconds per frame. The result was a choppy, laggy animation that was worse than useless for understanding match progression.
 
 **The decision**
-We replaced auto-playback with a **manual scrubber slider**. The designer drags the slider to any point in the match and the map updates to show exactly that moment. This is slower than watching a video but gives the designer full control — they can pause on any moment, compare two specific timestamps, and move at their own pace.
+We replaced auto-playback with a **manual scrubber slider**. The designer drags the slider to any point in the match and the map updates to show exactly that moment. This gives full control — pause on any moment, compare two specific timestamps, move at your own pace.
 
 **Why this is actually better for the use case**
-Level designers are not watching matches for entertainment. They are looking for specific patterns — "where does the fight start?", "at what point do players stop looting and start moving toward extraction?" A manual scrubber lets them jump directly to the moment of interest rather than waiting for playback to reach it.
+Level designers are not watching matches for entertainment. They are looking for specific patterns — "where does the fight start?", "at what point do players stop looting and start moving toward extraction?" A manual scrubber lets them jump directly to the moment of interest.
 
 **What we considered instead**
-Pre-computing animation frames as a Plotly `go.Figure` with frames and a play button. This works well for small datasets but with 1,243 files and 89,000 rows, pre-computing all frames would take 30–60 seconds on load, making the tool unusable.
+Pre-computing animation frames as a Plotly figure with frames and a built-in play button. This works well for small datasets but with 89,000 rows, pre-computing all frames would take 30–60 seconds on load, making the tool unusable.
 
 ---
 
 ## Assumption 5: Cascading Filters Prevent "No Data Found" Errors
 
 **The problem**
-Initial versions of the tool showed all maps, all dates, and all matches in three independent dropdowns. Users frequently selected combinations that had no data — for example, a date when a particular map was not in rotation. This produced an empty map with a "no data found" warning, which was confusing.
+Initial versions showed all maps, all dates, and all matches in three independent dropdowns. Users frequently selected combinations with no data — for example, a date when a particular map was not in rotation. This produced an empty map with a confusing warning.
 
 **The decision**
 Filters are cascading:
-1. Select a map → date dropdown refreshes to show only dates that have data for that map
-2. Select a date → match dropdown refreshes to show only matches from that exact map + date combination
-3. An **"ALL MATCHES"** option at the top of the match dropdown shows the full day's activity combined
+1. Select a map → date dropdown shows only dates that have data for that map
+2. Select a date → match dropdown shows only matches from that exact map + date combination
+3. **"ALL MATCHES"** at the top of the match dropdown shows the full day's activity combined
 
 **The tradeoff**
-If you change the map selection, the date and match selections reset. This is slightly annoying if you want to compare the same date across two maps. However, it completely eliminates "no data" errors and makes the tool usable by someone unfamiliar with the dataset.
+Changing the map selection resets date and match selections. Slightly annoying if comparing the same date across two maps. However, it completely eliminates "no data" errors and makes the tool usable by someone unfamiliar with the dataset.
 
 ---
 
@@ -105,10 +102,24 @@ The full dataset contains ~89,000 event rows across 5 days. Rendering all rows a
 When the filtered dataset exceeds 5,000 rows, we apply a random sample of 5,000 rows using a fixed random seed (42) for reproducibility. Individual match views typically contain 50–300 rows and are never sampled.
 
 **Why 5,000?**
-Empirically tested: 5,000 rows renders in under 2 seconds in a browser, produces visually meaningful paths, and preserves the spatial distribution of events. At 10,000 rows performance degrades noticeably. At 89,000 rows the browser freezes.
+Empirically tested: 5,000 rows renders in under 2 seconds, produces visually meaningful paths, and preserves the spatial distribution of events. At 10,000 rows performance degrades noticeably. At 89,000 the browser freezes.
 
 **The tradeoff**
-"ALL MATCHES" views for a full day may miss some events due to sampling. Individual match views are always shown in full and are the recommended mode for detailed analysis.
+"ALL MATCHES" views may miss some events due to sampling. Individual match views are always shown in full and are the recommended mode for detailed analysis.
+
+**Is it technically possible to show all 89,000 rows?**
+Yes — and there are four ways to do it, each with increasing complexity:
+
+- **Option 1 — Remove the cap entirely:** One-line change. But the browser freezes for 10–20 seconds on every filter change or slider move. On Streamlit Cloud (shared servers) it could time out and crash.
+
+- **Option 2 — Render as a static image:** Convert the Plotly chart to a PNG instead of an interactive chart. Handles millions of points instantly. But you lose all interactivity — no hover, no zoom, no toggling individual players on and off.
+
+- **Option 3 — Use Deck.gl or Kepler.gl:** These are purpose-built for rendering millions of geospatial points using WebGL. Would handle 89,000 rows easily. Requires React, a proper backend, and significantly more engineering time — not a 5-day PM assignment.
+
+- **Option 4 — Pre-aggregate server-side with DuckDB:** Query and summarise the data before sending to the browser. Only send summary statistics, not raw rows. Handles any dataset size. Again, significantly more complex architecture.
+
+**The V2 decision**
+If this were a production tool, the right move is Option 3 or 4. For this MVP, the 5,000 row cap is a deliberate tradeoff. The tool is designed for single-match analysis where 100% of data is always shown. For full-day views, the sample is statistically representative of the overall pattern.
 
 ---
 
@@ -118,7 +129,7 @@ Empirically tested: 5,000 rows renders in under 2 seconds in a browser, produces
 The `ts` column in the parquet files contains timestamps that appear to start from a Unix epoch of 1970-01-21, not 2026. This is because `ts` represents milliseconds elapsed within the match, not wall-clock time.
 
 **The decision**
-We treat `ts` as elapsed milliseconds within a match session. For the timeline slider, we convert to elapsed seconds (`ts_unix = ts_ms / 1000`) and display as `T+MM:SS` format (minutes and seconds into the match), not as a calendar time.
+We treat `ts` as elapsed milliseconds within a match session. For the timeline scrubber, we convert to elapsed seconds (`ts_unix = ts_ms / 1000`) and display as `T+MM:SS` format — minutes and seconds into the match, not a calendar time.
 
 **Why this matters**
-If we treated `ts` as a real timestamp, the timeline slider would show dates in January 1970 and match durations would be nonsensical. By treating it as elapsed time, the slider correctly shows a match as lasting e.g. `T+00:00` to `T+04:23`.
+If we treated `ts` as a real timestamp, the timeline scrubber would show dates in January 1970 and match durations would appear to be weeks long. By treating it as elapsed time, the scrubber correctly shows a match lasting e.g. `T+00:00` to `T+04:23`.
