@@ -1,7 +1,7 @@
 # 🎯 LILA BLACK — Player Journey Visualizer
 
 **Live Demo:** `[ADD YOUR STREAMLIT URL HERE]`  
-**GitHub:** `https://github.com/bhaskarragha/lila-tool-2`
+**GitHub:** `https://github.com/bhaskarragha/lila-tool`
 
 ---
 
@@ -43,7 +43,7 @@ Clone the repo and run immediately — no external files needed.
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/bhaskarragha/lila-tool-2.git
+git clone https://github.com/bhaskarragha/lila-tool.git
 cd lila-tool-2
 ```
 
@@ -153,7 +153,7 @@ Hosted on Streamlit Cloud. To redeploy from this repo:
 
 1. Go to [share.streamlit.io](https://share.streamlit.io)
 2. Click **Create app → Deploy a public app from GitHub**
-3. Set GitHub URL to: `https://github.com/bhaskarragha/lila-tool-2/blob/main/app.py`
+3. Set GitHub URL to: `https://github.com/bhaskarragha/lila-tool/blob/main/app.py`
 4. Click **Deploy**
 
 ---
